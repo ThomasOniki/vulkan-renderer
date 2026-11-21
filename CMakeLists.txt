@@ -32,6 +32,9 @@ option(VULKAN_RENDERER_NO_LIBCPP "Don't link with the c++ standard library."
 set_target_properties(vulkan-renderer PROPERTIES COMPILE_WARNING_AS_ERROR
                                                  ${VULKAN_RENDERER_WERROR})
 
+target_compile_options(vulkan-renderer
+                       PRIVATE "-Wno-missing-field-initializers")
+
 if(VULKAN_RENDERER_NO_LIBCPP)
   target_compile_options(vulkan-renderer PUBLIC "-nostdinc++" "-fno-exceptions")
   target_link_options(vulkan-renderer PUBLIC "-nostdlib++")
