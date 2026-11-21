@@ -19,16 +19,13 @@ Window Window::open(Vec2<u32> size, char const* title) noexcept {
                           "glfwInit returned GLFW_FALSE!");
   }
 
-  Window window;
-
-  window.handle_ =
+  GLFWwindow* handle =
       glfwCreateWindow(static_cast<int>(size[0]), static_cast<int>(size[0]),
                        title, nullptr, nullptr);
 
-  yacsl::debug::assert_(window.handle_ != nullptr,
-                        "glfwCreateWindow returned NULL!");
+  yacsl::debug::assert_(handle != nullptr, "glfwCreateWindow returned NULL!");
 
-  return window;
+  return {handle};
 }
 
 Window::~Window() noexcept {
