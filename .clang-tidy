@@ -1,0 +1,81 @@
+Checks: >
+  android-cloexec-*,
+  bugprone-*,
+  llvm-*,
+  modernize-*,
+  cppcoreguidelines-*,
+  google-*,
+  misc-*,
+  performance-*,
+  readability-*,
+  clang-analyzer-*,
+  fuchsia-virtual-inheritance,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-type-union-access,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-c-copy-assignment-signature,
+  -cppcoreguidelines-no-malloc,
+  -cppcoreguidelines-macro-usage,
+  -misc-unconventional-assign-operator,
+  -misc-non-private-member-variables-in-classes,
+  -misc-use-anonymous-namespace,
+  -misc-multiple-inheritance,
+  -misc-misplaced-const,
+  -misc-no-recursion,
+  -readability-magic-numbers,
+  -readability-math-missing-parentheses,
+  -readability-redundant-access-specifiers,
+  -readability-container-data-pointer,
+  -modernize-deprecated-headers,
+  -modernize-avoid-c-arrays,
+  -modernize-use-trailing-return-type,
+  -modernize-use-std-print,
+  -google-explicit-constructor,
+  -cppcoreguidelines-explicit-constructor,
+  -misc-explicit-constructor,
+  -google-runtime-int,
+  -google-readability-*,
+  -bugprone-multi-level-implicit-pointer-conversion,
+  -bugprone-bitwise-pointer-cast,
+  -bugprone-copy-constructor-mutates-argument,
+  -bugprone-unhandled-self-assignment,
+  -llvm-header-guard,
+  -clang-analyzer-optin.core.EnumCastOutOfRange,
+
+
+WarningsAsErrors: ""
+FormatStyle: none
+ExtraArgsBefore: ["-DYACSL_LSP_ONLY"]
+RemovedArgs: ["-include-pch", "-emit-pch", "-Xclang"]
+
+CheckOptions:
+  - key: google-readability-function-size.StatementThreshold
+    value: "80"
+  - key: modernize-loop-convert.MaxCopySize
+    value: "16"
+  - key: modernize-loop-convert.MinConfidence
+    value: reasonable
+  - key: cppcoreguidelines-missing-std-forward.ForwardFunction
+    value: ::yacsl::memory::forward
+  - key: cppcoreguidelines-rvalue-reference-param-not-moved.MoveFunction
+    value: ::yacsl::memory::move
+  - key: readability-identifier-length.IgnoredVariableNames
+    value: _
+  - key: cppcoreguidelines-avoid-do-while.IgnoreMacros
+    value: true
+  - key: readability-function-cognitive-complexity.IgnoreMacros
+    value: true
+  - key: readability-function-size.IgnoreMacros
+    value: true
+  - key: misc-include-cleaner.IgnoreHeaders
+    value: 'sys/fcntl\.h;sys/unistd\.h;sys/types\.h;sys/_types/.*\.h;_abort\.h;sys/syslimits\.h;_stdio\.h;stdio\.h'
+  - key: performance-unnecessary-value-param.AllowedTypes
+    value: "yacsl::Slice.*"
