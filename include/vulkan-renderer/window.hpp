@@ -21,7 +21,6 @@ public:
 
   ~Window() noexcept VULKAN_RENDERER_API;
 
-  Window(GLFWwindow* handle) noexcept : handle_(handle) {}
   Window(Window const&)            = delete;
   Window(Window&& other)           = delete;
   Window& operator=(Window const&) = delete;
@@ -36,6 +35,8 @@ public:
   }
 
 private:
+  Window(GLFWwindow* handle) noexcept : handle_(handle) {}
+
   GLFWwindow* handle_ = nullptr;
 };
 
