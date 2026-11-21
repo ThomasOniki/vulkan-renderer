@@ -1,7 +1,10 @@
-#include "vulkan-renderer/dummy.hpp"
-#include <yacsl/debug/log.hpp>
+#include "vulkan-renderer/window.hpp"
+#include "yacsl/debug/log.hpp"
 
 int main() {
-  yacsl::debug::log_info("TODO");
-  dummy();
+  auto window = vulkan_renderer::Window::open({800, 400}, "hello triangle");
+  while (!window.should_close()) {
+    window.update();
+  }
+  yacsl::debug::flush_logger();
 }
