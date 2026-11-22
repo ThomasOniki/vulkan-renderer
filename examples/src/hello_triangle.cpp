@@ -1,6 +1,6 @@
 #include "vulkan-renderer/context.hpp"
 #include "vulkan-renderer/object_desc.hpp"
-#include "vulkan-renderer/scene.hpp"
+#include "vulkan-renderer/scene_data.hpp"
 #include "vulkan-renderer/scene_desc.hpp"
 #include "vulkan-renderer/vertex_desc.hpp"
 #include "vulkan-renderer/window.hpp"
@@ -12,11 +12,11 @@
 using vulkan_renderer::Context, vulkan_renderer::Window;
 using vulkan_renderer::SceneDesc, vulkan_renderer::ObjectDesc,
     vulkan_renderer::VertexDesc, vulkan_renderer::VertexAttributeType,
-    vulkan_renderer::IndexType, vulkan_renderer::Scene;
+    vulkan_renderer::IndexType, vulkan_renderer::SceneData;
 using yacsl::containers::StackArray, yacsl::usize, yacsl::u16;
 using yacsl::math::Vec2, yacsl::f32;
 
-static Scene create_scene() {
+static SceneData create_scene() {
   struct Vertex {
     Vec2<f32> position;
   };
@@ -53,7 +53,7 @@ static Scene create_scene() {
 int main() {
   auto context = Context::create();
 
-  Scene scene = create_scene();
+  SceneData scene = create_scene();
 
   auto window    = Window::open({800, 400}, "hello triangle");
   auto swapchain = window.create_swapchain(context);

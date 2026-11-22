@@ -32,9 +32,9 @@ struct yacsl::containers::Hash<vulkan_renderer::detail::PipelineDesc,
 
 namespace vulkan_renderer {
 
-class Scene {
+class SceneData {
 public:
-  Scene(SceneDesc const& desc) {
+  SceneData(SceneDesc const& desc) {
     auto index_map =
         yacsl::containers::HashMap<detail::PipelineDesc, yacsl::usize, 8>(8);
 
