@@ -22,7 +22,8 @@ public:
     return open(size, title.c_str());
   }
 
-  Swapchain create_swapchain(this Window& self, Context& context) noexcept;
+  Swapchain create_swapchain(this Window& self,
+                             Context&     context) noexcept VULKAN_RENDERER_API;
 
   ~Window() noexcept VULKAN_RENDERER_API;
 
@@ -31,9 +32,10 @@ public:
   Window& operator=(Window const&) = delete;
   Window& operator=(Window&&)      = delete;
 
-  [[nodiscard]] bool should_close(this Window const& self) noexcept;
+  [[nodiscard]] bool
+  should_close(this Window const& self) noexcept VULKAN_RENDERER_API;
 
-  void update(this Window const& self) noexcept;
+  void update(this Window const& self) noexcept VULKAN_RENDERER_API;
 
   [[nodiscard]] constexpr auto handle(this Window const& self) noexcept {
     return self.handle_;

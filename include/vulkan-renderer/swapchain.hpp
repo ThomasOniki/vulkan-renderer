@@ -1,5 +1,6 @@
 #pragma once
 
+#include "vulkan-renderer/compiler/export.hpp"
 #include "vulkan-renderer/context.hpp"
 #include <vulkan/vulkan_core.h>
 
@@ -11,7 +12,7 @@ public:
             VkSwapchainKHR swapchain) noexcept
       : context_(&context), surface_(surface), format_(format),
         swapchain_(swapchain) {}
-  ~Swapchain() noexcept;
+  ~Swapchain() noexcept VULKAN_RENDERER_API;
 
   Swapchain(Swapchain const&)                                  = delete;
   Swapchain(Swapchain&&)                                       = delete;
