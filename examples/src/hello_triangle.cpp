@@ -55,7 +55,8 @@ int main() {
 
   Scene scene = create_scene();
 
-  auto window = Window::open({800, 400}, "hello triangle");
+  auto window    = Window::open({800, 400}, "hello triangle");
+  auto swapchain = window.create_swapchain(context);
   while (!window.should_close()) {
     window.update();
   }

@@ -1,4 +1,5 @@
 #include "vulkan-renderer/context.hpp"
+#include "glfw.hpp"
 #include "yacsl/containers/stack_array.hpp"
 #include "yacsl/containers/vector.hpp"
 #include "yacsl/debug/assert.hpp"
@@ -54,9 +55,17 @@ void Context::create_instance(this Context& self) noexcept {
 #else
   StackArray<char const*, 0> layers = {};
 #endif
-  StackArray<char const*, 1> extensions = {
+  Vector<char const*, 10, yacsl::memory::MainArenaAllocator, u32> extensions = {
       "VK_KHR_portability_enumeration",
   };
+  detail::glfw_retain();
+
+  u32          glfw_extension_count = 0;
+  char const** glfw_extensions =
+      glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+  for (u32 i = 0; i < glfw_extension_count; ++i) {
+    extensions.push(glfw_extensions[i]);
+  }
   VkInstanceCreateInfo info = {
       .sType                 = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
       .flags                 = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR,
@@ -69,6 +78,8 @@ void Context::create_instance(this Context& self) noexcept {
   assert_eq(vkCreateInstance(&info, &self.vk_loader_alloc_callbacks_,
                              &self.instance_),
             VK_SUCCESS);
+
+  detail::glfw_release();
 }
 
 void Context::pick_physical_device(this Context& self) noexcept {
@@ -110,10 +121,13 @@ void Context::create_device(this Context& self) noexcept {
       .queueCount       = 1,
       .pQueuePriorities = &priority,
   }}};
+  StackArray<char const*, 1>             extensions   = {{"VK_KHR_swapchain"}};
   VkDeviceCreateInfo                     info         = {
-      .sType                = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-      .queueCreateInfoCount = queue_infoes.len(),
-      .pQueueCreateInfos    = queue_infoes.data(),
+      .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+      .queueCreateInfoCount    = queue_infoes.len(),
+      .pQueueCreateInfos       = queue_infoes.data(),
+      .enabledExtensionCount   = extensions.len(),
+      .ppEnabledExtensionNames = extensions.data(),
   };
   assert_eq(vkCreateDevice(self.physical_device_, &info,
                            &self.vk_loader_alloc_callbacks_, &self.device_),

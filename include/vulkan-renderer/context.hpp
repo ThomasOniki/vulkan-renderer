@@ -21,21 +21,23 @@ public:
   Context& operator=(Context const&) = delete;
   Context& operator=(Context&&)      = delete;
 
-  [[nodiscard]] VkDevice device(this Context const& self) noexcept {
-    return self.device_;
-  }
-  [[nodiscard]] VkInstance instance(this Context const& self) noexcept {
+  [[nodiscard]] auto instance(this Context const& self) noexcept {
     return self.instance_;
   }
-  [[nodiscard]] VkAllocationCallbacks const&
+  [[nodiscard]] auto physical_device(this Context const& self) noexcept {
+    return self.physical_device_;
+  }
+  [[nodiscard]] auto device(this Context const& self) noexcept {
+    return self.device_;
+  }
+  [[nodiscard]] auto const&
   vk_loader_allocation_callbacks(this Context const& self) noexcept {
     return self.vk_loader_alloc_callbacks_;
   }
-  [[nodiscard]] yacsl::u32
-  queue_family_index(this Context const& self) noexcept {
+  [[nodiscard]] auto queue_family_index(this Context const& self) noexcept {
     return self.queue_family_index_;
   }
-  [[nodiscard]] VkQueue queue(this Context const& self) noexcept {
+  [[nodiscard]] auto queue(this Context const& self) noexcept {
     return self.queue_;
   }
 
