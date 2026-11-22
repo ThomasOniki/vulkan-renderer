@@ -28,6 +28,7 @@ target_link_libraries(vulkan-renderer PRIVATE glfw Vulkan::Vulkan)
 option(VULKAN_RENDERER_WERROR "Treat warnings as errors." ON)
 option(VULKAN_RENDERER_NO_LIBCPP "Don't link with the c++ standard library."
        OFF)
+option(VULKAN_RENDERER_VALIDATION_LAYERS "Enable vulkan validation layers." OFF)
 
 set_target_properties(vulkan-renderer PROPERTIES COMPILE_WARNING_AS_ERROR
                                                  ${VULKAN_RENDERER_WERROR})
@@ -39,6 +40,11 @@ if(VULKAN_RENDERER_NO_LIBCPP)
   target_compile_options(vulkan-renderer PUBLIC "-nostdinc++" "-fno-exceptions")
   target_link_options(vulkan-renderer PUBLIC "-nostdlib++")
   target_compile_definitions(vulkan-renderer PUBLIC VULKAN_RENDERER_NO_LIBCPP)
+endif()
+
+if(VULKAN_RENDERER_VALIDATION_LAYERS)
+  target_compile_definitions(vulkan-renderer
+                             PRIVATE VULKAN_RENDERER_VALIDATION_LAYERS)
 endif()
 
 target_precompile_headers(vulkan-renderer PUBLIC
