@@ -76,7 +76,7 @@ Swapchain Window::create_swapchain(this Window& self,
       .imageArrayLayers = 1,
       .imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
       .preTransform     = capabilities.currentTransform,
-      .compositeAlpha   = VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
+      .compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
       .presentMode      = present_mode,
   };
   VkSwapchainKHR swapchain = VK_NULL_HANDLE;

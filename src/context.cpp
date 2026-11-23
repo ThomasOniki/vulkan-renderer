@@ -3,16 +3,18 @@
 #include "yacsl/containers/stack_array.hpp"
 #include "yacsl/containers/vector.hpp"
 #include "yacsl/debug/assert.hpp"
+#include "yacsl/debug/panic.hpp"
 #include "yacsl/memory/alignment.hpp"
 #include "yacsl/memory/arena.hpp"
 #include "yacsl/type_aliases.hpp"
+#include <string.h>
 #include <vulkan/vulkan_core.h>
 
 namespace vulkan_renderer {
 
 using yacsl::u32, yacsl::usize;
 using yacsl::containers::Vector, yacsl::containers::StackArray;
-using yacsl::debug::assert_eq, yacsl::debug::assert_;
+using yacsl::debug::assert_eq, yacsl::debug::assert_, yacsl::debug::panic;
 using yacsl::memory::Alignment;
 
 struct Context::VulkanLoaderAllocator::Callbacks {
@@ -55,14 +57,21 @@ void Context::create_instance(this Context& self) noexcept {
 #else
   StackArray<char const*, 0> layers = {};
 #endif
+
   Vector<char const*, 10, yacsl::memory::MainArenaAllocator, u32> extensions = {
       "VK_KHR_portability_enumeration",
+      "VK_KHR_get_physical_device_properties2",
   };
   detail::glfw_retain();
 
   u32          glfw_extension_count = 0;
   char const** glfw_extensions =
       glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+  assert_(glfw_extensions != nullptr,
+          "Failed to get the required vulkan instance extensions for GLFW. On "
+          "macos, try adding the location of your vulkan dylib to "
+          "DYLD_LIBRARY_PATH at runtime or RPATH at build time.");
+
   for (u32 i = 0; i < glfw_extension_count; ++i) {
     extensions.push(glfw_extensions[i]);
   }
@@ -75,9 +84,15 @@ void Context::create_instance(this Context& self) noexcept {
       .enabledExtensionCount = extensions.len(),
       .ppEnabledExtensionNames = extensions.data(),
   };
-  assert_eq(vkCreateInstance(&info, &self.vk_loader_alloc_callbacks_,
-                             &self.instance_),
-            VK_SUCCESS);
+  VkResult result = vkCreateInstance(&info, &self.vk_loader_alloc_callbacks_,
+                                     &self.instance_);
+
+  if (result == VK_ERROR_LAYER_NOT_PRESENT) {
+    panic("A vulkan validation layer was not found. If you installed vulkan in "
+          "a non-standard location, you may need to set VK_LAYER_PATH.");
+  }
+
+  assert_eq(result, VK_SUCCESS);
 
   detail::glfw_release();
 }
@@ -92,7 +107,7 @@ void Context::pick_physical_device(this Context& self) noexcept {
   self.physical_device_ = devices[0];
 }
 
-void Context::get_queue_family_index(this Context& self) noexcept {
+void Context::find_queue_family_index(this Context& self) noexcept {
   u32 count = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(self.physical_device_, &count,
                                            nullptr);
@@ -114,6 +129,25 @@ void Context::get_queue_family_index(this Context& self) noexcept {
 }
 
 void Context::create_device(this Context& self) noexcept {
+  Vector<char const*, 2, yacsl::memory::MainArenaAllocator, u32> extensions = {
+      "VK_KHR_swapchain",
+  };
+
+  u32 supported_extension_count = 0;
+  vkEnumerateDeviceExtensionProperties(self.physical_device_, nullptr,
+                                       &supported_extension_count, nullptr);
+  auto extension_properties =
+      Vector<VkExtensionProperties>(supported_extension_count);
+  vkEnumerateDeviceExtensionProperties(self.physical_device_, nullptr,
+                                       &supported_extension_count,
+                                       extension_properties.data());
+
+  for (auto const& properties : extension_properties) {
+    if (strcmp(properties.extensionName, "VK_KHR_portability_subset") == 0) {
+      extensions.push("VK_KHR_portability_subset");
+    }
+  }
+
   float                                  priority     = 1;
   StackArray<VkDeviceQueueCreateInfo, 1> queue_infoes = {{{
       .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -121,7 +155,6 @@ void Context::create_device(this Context& self) noexcept {
       .queueCount       = 1,
       .pQueuePriorities = &priority,
   }}};
-  StackArray<char const*, 1>             extensions   = {{"VK_KHR_swapchain"}};
   VkDeviceCreateInfo                     info         = {
       .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
       .queueCreateInfoCount    = queue_infoes.len(),
@@ -132,6 +165,25 @@ void Context::create_device(this Context& self) noexcept {
   assert_eq(vkCreateDevice(self.physical_device_, &info,
                            &self.vk_loader_alloc_callbacks_, &self.device_),
             VK_SUCCESS);
+}
+
+void Context::find_memory_type_indices(this Context& self) noexcept {
+  VkPhysicalDeviceMemoryProperties mem_props;
+  vkGetPhysicalDeviceMemoryProperties(self.physical_device_, &mem_props);
+
+  for (u32 i = 0; i < mem_props.memoryTypeCount; ++i) {
+    if ((mem_props.memoryTypes[i].propertyFlags &
+         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) > 0) {
+      self.mappable_memory_type_index_ = i;
+    }
+    if ((mem_props.memoryTypes[i].propertyFlags &
+         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) > 0) {
+      self.optimal_memory_type_index_ = i;
+    }
+  }
+
+  assert_(self.mappable_memory_type_index_ != VK_MAX_MEMORY_TYPES);
+  assert_(self.optimal_memory_type_index_ != VK_MAX_MEMORY_TYPES);
 }
 
 Context::Context(InitTag /*tag*/) noexcept
@@ -146,9 +198,10 @@ Context::Context(InitTag /*tag*/) noexcept
       } {
   create_instance();
   pick_physical_device();
-  get_queue_family_index();
+  find_queue_family_index();
   create_device();
   vkGetDeviceQueue(device_, queue_family_index_, 0, &queue_);
+  find_memory_type_indices();
 }
 
 Context::~Context() noexcept {

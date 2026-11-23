@@ -23,7 +23,8 @@ target_link_libraries(vulkan-renderer PUBLIC yacsl::yacsl)
 
 find_package(Vulkan REQUIRED)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/third_party/glfw")
-target_link_libraries(vulkan-renderer PRIVATE glfw Vulkan::Vulkan)
+target_link_libraries(vulkan-renderer PRIVATE glfw)
+target_link_libraries(vulkan-renderer PUBLIC Vulkan::Vulkan)
 
 option(VULKAN_RENDERER_WERROR "Treat warnings as errors." ON)
 option(VULKAN_RENDERER_NO_LIBCPP "Don't link with the c++ standard library."
