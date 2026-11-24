@@ -9,7 +9,8 @@ namespace vulkan_renderer {
 
 class Swapchain {
 public:
-  explicit Swapchain(Context& context, Window& window) noexcept;
+  explicit Swapchain(Context& context,
+                     Window&  window) noexcept VULKAN_RENDERER_API;
   ~Swapchain() noexcept VULKAN_RENDERER_API;
 
   Swapchain(Swapchain const&)                                  = delete;
