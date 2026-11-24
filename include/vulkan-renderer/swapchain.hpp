@@ -2,7 +2,10 @@
 
 #include "vulkan-renderer/compiler/export.hpp"
 #include "vulkan-renderer/context.hpp"
+#include "vulkan-renderer/render_target.hpp"
 #include "vulkan-renderer/window.hpp"
+#include "yacsl/containers/stack_array.hpp"
+#include "yacsl/type_aliases.hpp"
 #include <vulkan/vulkan_core.h>
 
 namespace vulkan_renderer {
@@ -18,6 +21,9 @@ public:
   Swapchain& operator=(this Swapchain& self, Swapchain const&) = delete;
   Swapchain& operator=(this Swapchain& self, Swapchain&&)      = delete;
 
+  [[nodiscard]] RenderTarget
+  next_image(this Swapchain& self) noexcept VULKAN_RENDERER_API;
+
   [[nodiscard]] auto surface(this Swapchain const& self) noexcept {
     return self.surface_;
   }
@@ -28,11 +34,20 @@ public:
     return self.swapchain_;
   }
 
+  static constexpr yacsl::usize FRAMES_IN_FLIGHT = 2;
+
 private:
   Context*       context_;
   VkSurfaceKHR   surface_;
   VkFormat       format_;
   VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
+
+  yacsl::containers::Vector<VkImage, 4>     images_;
+  yacsl::containers::Vector<VkImageView, 4> image_views_;
+
+  yacsl::u32 frame_index_ = 0;
+  yacsl::containers::StackArray<VkSemaphore, FRAMES_IN_FLIGHT>
+      image_acquired_semaphores_ = {};
 };
 
 } // namespace vulkan_renderer

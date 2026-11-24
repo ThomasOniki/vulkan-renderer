@@ -1,6 +1,7 @@
 #include "vulkan-renderer/context.hpp"
 #include "vulkan-renderer/gpu_scene.hpp"
 #include "vulkan-renderer/object_desc.hpp"
+#include "vulkan-renderer/render_target.hpp"
 #include "vulkan-renderer/renderer.hpp"
 #include "vulkan-renderer/scene_data.hpp"
 #include "vulkan-renderer/scene_desc.hpp"
@@ -13,7 +14,8 @@
 #include "yacsl/type_aliases.hpp"
 
 using vulkan_renderer::Context, vulkan_renderer::Renderer,
-    vulkan_renderer::Window, vulkan_renderer::Swapchain;
+    vulkan_renderer::Window, vulkan_renderer::Swapchain,
+    vulkan_renderer::RenderTarget;
 using vulkan_renderer::SceneDesc, vulkan_renderer::ObjectDesc,
     vulkan_renderer::VertexDesc, vulkan_renderer::VertexAttributeType,
     vulkan_renderer::IndexType, vulkan_renderer::SceneData,

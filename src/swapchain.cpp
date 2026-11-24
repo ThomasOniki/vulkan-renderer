@@ -1,10 +1,12 @@
 #include "vulkan-renderer/swapchain.hpp"
 #include "vulkan-renderer/context.hpp"
+#include "vulkan-renderer/render_target.hpp"
 #include "vulkan-renderer/window.hpp"
 #include "yacsl/containers/vector.hpp"
 #include "yacsl/debug/assert.hpp"
 #include "yacsl/debug/panic.hpp"
 #include "yacsl/type_aliases.hpp"
+#include <coroutine>
 #include <vulkan/vulkan_core.h>
 
 using yacsl::u32, yacsl::containers::Vector;
@@ -45,6 +47,40 @@ static VkPresentModeKHR pick_present_mode(VkPhysicalDevice physical_device,
   return VK_PRESENT_MODE_FIFO_KHR;
 }
 
+static VkImageView create_image_view(Context& context, VkImage image,
+                                     VkFormat format) noexcept {
+  VkImageViewCreateInfo info = {
+      .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+      .image    = image,
+      .viewType = VK_IMAGE_VIEW_TYPE_2D,
+      .format   = format,
+      .subresourceRange =
+          {
+              .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+              .levelCount = 1,
+              .layerCount = 1,
+          },
+  };
+  VkImageView image_view = VK_NULL_HANDLE;
+  assert_eq(vkCreateImageView(context.device(), &info,
+                              &context.vk_loader_allocation_callbacks(),
+                              &image_view),
+            VK_SUCCESS);
+  return image_view;
+}
+
+static VkSemaphore create_semaphore(Context& context) noexcept {
+  VkSemaphoreCreateInfo info = {
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+  };
+  VkSemaphore semaphore = VK_NULL_HANDLE;
+  assert_eq(vkCreateSemaphore(context.device(), &info,
+                              &context.vk_loader_allocation_callbacks(),
+                              &semaphore),
+            VK_SUCCESS);
+  return semaphore;
+}
+
 Swapchain::Swapchain(Context& context, Window& window) noexcept
     : context_(&context), surface_(window.create_surface(context)),
       format_(pick_format(context.physical_device(), surface_)) {
@@ -78,13 +114,52 @@ Swapchain::Swapchain(Context& context, Window& window) noexcept
                            &context.vk_loader_allocation_callbacks(),
                            &swapchain_),
       VK_SUCCESS);
+
+  u32 image_count = 0;
+  assert_eq(vkGetSwapchainImagesKHR(context.device(), swapchain_, &image_count,
+                                    nullptr),
+            VK_SUCCESS);
+  images_.resize(image_count);
+  assert_eq(vkGetSwapchainImagesKHR(context.device(), swapchain_, &image_count,
+                                    images_.data()),
+            VK_SUCCESS);
+  for (VkImage const image : images_) {
+    image_views_.push(create_image_view(context, image, format_));
+  }
+
+  for (VkSemaphore& semaphore : image_acquired_semaphores_) {
+    semaphore = create_semaphore(context);
+  }
 }
 
 Swapchain::~Swapchain() noexcept {
+  for (VkSemaphore semaphore : image_acquired_semaphores_) {
+    vkDestroySemaphore(context_->device(), semaphore,
+                       &context_->vk_loader_allocation_callbacks());
+  }
+
+  for (yacsl::u32 i = 0; i < images_.len(); ++i) {
+    vkDestroyImageView(context_->device(), image_views_[i],
+                       &context_->vk_loader_allocation_callbacks());
+  }
+
   vkDestroySwapchainKHR(context_->device(), swapchain_,
                         &context_->vk_loader_allocation_callbacks());
   vkDestroySurfaceKHR(context_->instance(), surface_,
                       &context_->vk_loader_allocation_callbacks());
+}
+
+RenderTarget Swapchain::next_image(this Swapchain& self) noexcept {
+  u32         image_index = 0;
+  VkSemaphore semaphore   = self.image_acquired_semaphores_[self.frame_index_];
+  self.frame_index_       = (self.frame_index_ + 1) % FRAMES_IN_FLIGHT;
+  vkAcquireNextImageKHR(self.context_->device(), self.swapchain_, 0, semaphore,
+                        VK_NULL_HANDLE, &image_index);
+  return RenderTarget{
+      .image           = self.images_[image_index],
+      .image_view      = self.image_views_[image_index],
+      .ready_semaphore = semaphore,
+  };
 }
 
 } // namespace vulkan_renderer
