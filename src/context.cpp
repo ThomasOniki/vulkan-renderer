@@ -186,7 +186,7 @@ void Context::find_memory_type_indices(this Context& self) noexcept {
   assert_(self.optimal_memory_type_index_ != VK_MAX_MEMORY_TYPES);
 }
 
-Context::Context(InitTag /*tag*/) noexcept
+Context::Context() noexcept
     : vk_loader_alloc_callbacks_{
           .pUserData       = &vk_loader_alloc_,
           .pfnAllocation   = VulkanLoaderAllocator::Callbacks::alloc,

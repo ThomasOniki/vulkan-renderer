@@ -1,5 +1,4 @@
 #include "vulkan-renderer/swapchain.hpp"
-#include "glfw.hpp"
 #include "vulkan-renderer/context.hpp"
 #include "vulkan-renderer/window.hpp"
 #include "yacsl/containers/vector.hpp"
@@ -46,32 +45,27 @@ static VkPresentModeKHR pick_present_mode(VkPhysicalDevice physical_device,
   return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-Swapchain Window::create_swapchain(this Window& self,
-                                   Context&     context) noexcept {
-  VkSurfaceKHR surface = VK_NULL_HANDLE;
-  assert_eq(glfwCreateWindowSurface(context.instance(), self.handle_,
-                                    &context.vk_loader_allocation_callbacks(),
-                                    &surface),
-            VK_SUCCESS);
-
+Swapchain::Swapchain(Context& context, Window& window) noexcept
+    : context_(&context), surface_(window.create_surface(context)),
+      format_(pick_format(context.physical_device(), surface_)) {
   VkSurfaceCapabilitiesKHR capabilities;
   assert_eq(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context.physical_device(),
-                                                      surface, &capabilities),
+                                                      surface_, &capabilities),
             VK_SUCCESS);
 
-  VkFormat const format = pick_format(context.physical_device(), surface);
+  VkFormat const format = pick_format(context.physical_device(), surface_);
   VkPresentModeKHR const present_mode =
-      pick_present_mode(context.physical_device(), surface);
+      pick_present_mode(context.physical_device(), surface_);
 
   VkSwapchainCreateInfoKHR info = {
       .sType         = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-      .surface       = surface,
+      .surface       = surface_,
       .minImageCount = capabilities.minImageCount,
       .imageFormat   = format,
       .imageExtent =
           {
-              .width  = self.framebuffer_size_[0],
-              .height = self.framebuffer_size_[1],
+              .width  = window.framebuffer_size()[0],
+              .height = window.framebuffer_size()[1],
           },
       .imageArrayLayers = 1,
       .imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -79,15 +73,11 @@ Swapchain Window::create_swapchain(this Window& self,
       .compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
       .presentMode      = present_mode,
   };
-  VkSwapchainKHR swapchain = VK_NULL_HANDLE;
-
   yacsl::debug::assert_eq(
       vkCreateSwapchainKHR(context.device(), &info,
                            &context.vk_loader_allocation_callbacks(),
-                           &swapchain),
+                           &swapchain_),
       VK_SUCCESS);
-
-  return {context, surface, format, swapchain};
 }
 
 Swapchain::~Swapchain() noexcept {

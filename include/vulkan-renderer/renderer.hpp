@@ -9,8 +9,7 @@ namespace vulkan_renderer {
 
 class Renderer {
 public:
-  static Renderer create(Context& context) noexcept { return {context}; }
-
+  explicit Renderer(Context& context) noexcept : context_(&context) {}
   ~Renderer() = default;
 
   Renderer(Renderer const&)                                 = delete;
@@ -22,8 +21,6 @@ public:
                       SceneData const&     data) noexcept VULKAN_RENDERER_API;
 
 private:
-  Renderer(Context& context) noexcept : context_(&context) {}
-
   Context* context_;
 };
 

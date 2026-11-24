@@ -11,10 +11,7 @@ namespace vulkan_renderer {
 
 class Context {
 public:
-  // Initialization has to take place in the constructor because
-  // allocation_callbacks.pUserData needs to point to the arena member.
-  // Changing pUserData doesn't work.
-  static auto create() noexcept { return Context(InitTag{}); }
+  Context() noexcept VULKAN_RENDERER_API;
   ~Context() noexcept VULKAN_RENDERER_API;
 
   Context(Context const&)            = delete;
@@ -73,13 +70,6 @@ private:
   yacsl::u32 optimal_memory_type_index_  = VK_MAX_MEMORY_TYPES;
 
 private:
-  struct InitTag {};
-
-  // Initialization has to take place in the constructor because
-  // allocation_callbacks.pUserData needs to point to the arena member.
-  // Changing pUserData doesn't work.
-  Context(InitTag /*tag*/) noexcept VULKAN_RENDERER_API;
-
   void create_instance(this Context& self) noexcept;
   void pick_physical_device(this Context& self) noexcept;
   void find_queue_family_index(this Context& self) noexcept;

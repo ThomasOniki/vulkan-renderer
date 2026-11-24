@@ -2,16 +2,14 @@
 
 #include "vulkan-renderer/compiler/export.hpp"
 #include "vulkan-renderer/context.hpp"
+#include "vulkan-renderer/window.hpp"
 #include <vulkan/vulkan_core.h>
 
 namespace vulkan_renderer {
 
 class Swapchain {
 public:
-  Swapchain(Context& context, VkSurfaceKHR surface, VkFormat format,
-            VkSwapchainKHR swapchain) noexcept
-      : context_(&context), surface_(surface), format_(format),
-        swapchain_(swapchain) {}
+  explicit Swapchain(Context& context, Window& window) noexcept;
   ~Swapchain() noexcept VULKAN_RENDERER_API;
 
   Swapchain(Swapchain const&)                                  = delete;
@@ -33,7 +31,7 @@ private:
   Context*       context_;
   VkSurfaceKHR   surface_;
   VkFormat       format_;
-  VkSwapchainKHR swapchain_;
+  VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
 };
 
 } // namespace vulkan_renderer

@@ -4,6 +4,7 @@
 #include "vulkan-renderer/renderer.hpp"
 #include "vulkan-renderer/scene_data.hpp"
 #include "vulkan-renderer/scene_desc.hpp"
+#include "vulkan-renderer/swapchain.hpp"
 #include "vulkan-renderer/vertex_desc.hpp"
 #include "vulkan-renderer/window.hpp"
 #include "yacsl/containers/stack_array.hpp"
@@ -12,7 +13,7 @@
 #include "yacsl/type_aliases.hpp"
 
 using vulkan_renderer::Context, vulkan_renderer::Renderer,
-    vulkan_renderer::Window;
+    vulkan_renderer::Window, vulkan_renderer::Swapchain;
 using vulkan_renderer::SceneDesc, vulkan_renderer::ObjectDesc,
     vulkan_renderer::VertexDesc, vulkan_renderer::VertexAttributeType,
     vulkan_renderer::IndexType, vulkan_renderer::SceneData,
@@ -20,50 +21,53 @@ using vulkan_renderer::SceneDesc, vulkan_renderer::ObjectDesc,
 using yacsl::containers::StackArray, yacsl::usize, yacsl::u16;
 using yacsl::math::Vec2, yacsl::f32;
 
-static SceneData create_scene_data() {
+static auto create_scene_data() {
   struct Vertex {
     Vec2<f32> position;
   };
-  StackArray<Vertex, 3, usize> vertices = {{
+  auto vertices = StackArray<Vertex, 3, usize>({
       {.position = {-0.5, 0.5}},
       {.position = {0.5, 0.5}},
       {.position = {0.5, 0.5}},
-  }};
-  StackArray<u16, 3, usize>    indices  = {0, 1, 2};
+  });
+  auto indices  = StackArray<u16, 3, usize>{0, 1, 2};
 
-  VertexDesc vertex_desc = {
-      .attributes = {{
+  auto vertex_desc = VertexDesc{
+      .attributes =
           {
-              .type   = VertexAttributeType::F32x2,
-              .offset = offsetof(Vertex, position),
+              {
+                  .type   = VertexAttributeType::F32x2,
+                  .offset = offsetof(Vertex, position),
+              },
           },
-      }},
-      .stride     = sizeof(Vertex),
+      .stride = sizeof(Vertex),
   };
-  StackArray<ObjectDesc, 1, usize> objects    = {{
+
+  auto objects = StackArray<ObjectDesc, 1, usize>({
       {
           .vertex_desc = vertex_desc,
           .index_type  = IndexType::U16,
           .vertices    = vertices.bytes(),
           .indices     = indices.bytes(),
       },
-  }};
-  SceneDesc                        scene_desc = {
+  });
+
+  auto scene_desc = SceneDesc{
       .objects = objects.slice(),
   };
-  return {scene_desc};
+
+  return SceneData(scene_desc);
 }
 
 int main() {
-  auto context = Context::create();
-
-  auto renderer = Renderer::create(context);
+  auto context  = Context();
+  auto renderer = Renderer(context);
 
   SceneData scene_data = create_scene_data();
   GPUScene  gpu_scene  = renderer.load_scene(scene_data);
 
-  auto window    = Window::open({800, 400}, "hello triangle");
-  auto swapchain = window.create_swapchain(context);
+  auto window    = Window({800, 400}, "hello triangle");
+  auto swapchain = Swapchain(context, window);
   while (!window.should_close()) {
     window.update();
   }

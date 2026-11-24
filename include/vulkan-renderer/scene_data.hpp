@@ -34,7 +34,7 @@ namespace vulkan_renderer {
 
 class SceneData {
 public:
-  SceneData(SceneDesc const& desc) {
+  explicit SceneData(SceneDesc const& desc) {
     using yacsl::usize;
     using yacsl::containers::HashMap, yacsl::containers::Vector;
     auto index_map = HashMap<detail::PipelineDesc, Vector<usize>, 8>(8);
