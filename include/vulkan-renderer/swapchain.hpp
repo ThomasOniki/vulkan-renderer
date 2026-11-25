@@ -5,6 +5,7 @@
 #include "vulkan-renderer/render_target.hpp"
 #include "vulkan-renderer/window.hpp"
 #include "yacsl/containers/stack_array.hpp"
+#include "yacsl/containers/tuple.hpp"
 #include "yacsl/type_aliases.hpp"
 #include <vulkan/vulkan_core.h>
 
@@ -21,7 +22,7 @@ public:
   Swapchain& operator=(this Swapchain& self, Swapchain const&) = delete;
   Swapchain& operator=(this Swapchain& self, Swapchain&&)      = delete;
 
-  [[nodiscard]] RenderTarget
+  [[nodiscard]] yacsl::containers::Tuple<RenderTarget, VkSemaphore>
   next_image(this Swapchain& self) noexcept VULKAN_RENDERER_API;
 
   [[nodiscard]] auto surface(this Swapchain const& self) noexcept {

@@ -8,7 +8,6 @@ namespace vulkan_renderer {
 struct RenderTarget {
   VkImage     image;
   VkImageView image_view;
-  VkSemaphore ready_semaphore;
 };
 
 } // namespace vulkan_renderer

@@ -149,16 +149,19 @@ Swapchain::~Swapchain() noexcept {
                       &context_->vk_loader_allocation_callbacks());
 }
 
-RenderTarget Swapchain::next_image(this Swapchain& self) noexcept {
+yacsl::containers::Tuple<RenderTarget, VkSemaphore>
+Swapchain::next_image(this Swapchain& self) noexcept {
   u32         image_index = 0;
   VkSemaphore semaphore   = self.image_acquired_semaphores_[self.frame_index_];
   self.frame_index_       = (self.frame_index_ + 1) % FRAMES_IN_FLIGHT;
   vkAcquireNextImageKHR(self.context_->device(), self.swapchain_, 0, semaphore,
                         VK_NULL_HANDLE, &image_index);
-  return RenderTarget{
-      .image           = self.images_[image_index],
-      .image_view      = self.image_views_[image_index],
-      .ready_semaphore = semaphore,
+  return {
+      RenderTarget{
+          .image      = self.images_[image_index],
+          .image_view = self.image_views_[image_index],
+      },
+      semaphore,
   };
 }
 
