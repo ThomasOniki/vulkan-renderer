@@ -34,7 +34,10 @@ struct Context::VulkanLoaderAllocator::Callbacks {
     auto& self = *static_cast<VulkanLoaderAllocator*>(pself);
     void* ptr =
         self.arena.allocate(size, yacsl::memory::Alignment{alignment}).data();
-    memcpy(ptr, original, self.vulkan_loader_allocations.get(original));
+    if (original != nullptr) {
+      memcpy(ptr, original, self.vulkan_loader_allocations.get(original));
+      self.vulkan_loader_allocations.remove(original);
+    }
     self.vulkan_loader_allocations.insert(ptr, size);
     return ptr;
   }
