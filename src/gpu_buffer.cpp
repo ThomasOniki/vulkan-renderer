@@ -15,8 +15,9 @@ GPUBuffer GPUBuffer::create(Context& context, usize size,
                             MemoryType         memory_type) noexcept {
   auto buffer = GPUBuffer(context);
 
-  yacsl::u32 const   queue_family_index = context.queue_family_index();
-  VkBufferCreateInfo info               = {
+  yacsl::u32 const queue_family_index =
+      context.device_info().queue_family_index;
+  VkBufferCreateInfo info = {
       .sType                 = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
       .size                  = size,
       .usage                 = usage,
@@ -33,8 +34,8 @@ GPUBuffer GPUBuffer::create(Context& context, usize size,
       .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
       .allocationSize  = size,
       .memoryTypeIndex = memory_type == MemoryType::Mappable
-                             ? context.mappable_memory_type_index()
-                             : context.optimal_memory_type_index(),
+                             ? context.device_info().mappable_memory_type_index
+                             : context.device_info().optimal_memory_type_index,
   };
   assert_eq(vkAllocateMemory(context.device(), &alloc_info,
                              &context.vk_loader_allocation_callbacks(),

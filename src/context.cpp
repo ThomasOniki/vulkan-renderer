@@ -3,7 +3,6 @@
 #include "yacsl/containers/stack_array.hpp"
 #include "yacsl/containers/vector.hpp"
 #include "yacsl/debug/assert.hpp"
-#include "yacsl/debug/panic.hpp"
 #include "yacsl/memory/alignment.hpp"
 #include "yacsl/memory/arena.hpp"
 #include "yacsl/type_aliases.hpp"
@@ -14,7 +13,7 @@ namespace vulkan_renderer {
 
 using yacsl::u32, yacsl::usize;
 using yacsl::containers::Vector, yacsl::containers::StackArray;
-using yacsl::debug::assert_eq, yacsl::debug::assert_, yacsl::debug::panic;
+using yacsl::debug::assert_eq, yacsl::debug::assert_;
 using yacsl::memory::Alignment;
 
 struct Context::VulkanLoaderAllocator::Callbacks {
@@ -115,12 +114,31 @@ void Context::find_queue_family_index(this Context& self) noexcept {
 
   for (u32 index : properties_vec.indices()) {
     if ((properties_vec[index].queueFlags & VK_QUEUE_GRAPHICS_BIT) > 0) {
-      self.queue_family_index_ = index;
-      found                    = true;
+      self.device_info_.queue_family_index = index;
+      found                                = true;
       break;
     }
   }
   assert_(found, "No queue families were found!");
+}
+
+void Context::find_memory_type_indices(this Context& self) noexcept {
+  VkPhysicalDeviceMemoryProperties mem_props;
+  vkGetPhysicalDeviceMemoryProperties(self.physical_device_, &mem_props);
+
+  for (u32 i = 0; i < mem_props.memoryTypeCount; ++i) {
+    if ((mem_props.memoryTypes[i].propertyFlags &
+         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) > 0) {
+      self.device_info_.mappable_memory_type_index = i;
+    }
+    if ((mem_props.memoryTypes[i].propertyFlags &
+         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) > 0) {
+      self.device_info_.optimal_memory_type_index = i;
+    }
+  }
+
+  assert_(self.device_info_.mappable_memory_type_index != VK_MAX_MEMORY_TYPES);
+  assert_(self.device_info_.optimal_memory_type_index != VK_MAX_MEMORY_TYPES);
 }
 
 void Context::create_device(this Context& self) noexcept {
@@ -146,7 +164,7 @@ void Context::create_device(this Context& self) noexcept {
   float                                  priority     = 1;
   StackArray<VkDeviceQueueCreateInfo, 1> queue_infoes = {{{
       .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-      .queueFamilyIndex = self.queue_family_index_,
+      .queueFamilyIndex = self.device_info_.queue_family_index,
       .queueCount       = 1,
       .pQueuePriorities = &priority,
   }}};
@@ -162,25 +180,6 @@ void Context::create_device(this Context& self) noexcept {
             VK_SUCCESS);
 }
 
-void Context::find_memory_type_indices(this Context& self) noexcept {
-  VkPhysicalDeviceMemoryProperties mem_props;
-  vkGetPhysicalDeviceMemoryProperties(self.physical_device_, &mem_props);
-
-  for (u32 i = 0; i < mem_props.memoryTypeCount; ++i) {
-    if ((mem_props.memoryTypes[i].propertyFlags &
-         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) > 0) {
-      self.mappable_memory_type_index_ = i;
-    }
-    if ((mem_props.memoryTypes[i].propertyFlags &
-         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) > 0) {
-      self.optimal_memory_type_index_ = i;
-    }
-  }
-
-  assert_(self.mappable_memory_type_index_ != VK_MAX_MEMORY_TYPES);
-  assert_(self.optimal_memory_type_index_ != VK_MAX_MEMORY_TYPES);
-}
-
 Context::Context() noexcept
     : vk_loader_alloc_callbacks_{
           .pUserData       = &vk_loader_alloc_,
@@ -194,9 +193,9 @@ Context::Context() noexcept
   create_instance();
   pick_physical_device();
   find_queue_family_index();
-  create_device();
-  vkGetDeviceQueue(device_, queue_family_index_, 0, &queue_);
   find_memory_type_indices();
+  create_device();
+  vkGetDeviceQueue(device_, device_info_.queue_family_index, 0, &queue_);
 }
 
 Context::~Context() noexcept {
