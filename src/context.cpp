@@ -67,10 +67,7 @@ void Context::create_instance(this Context& self) noexcept {
   u32          glfw_extension_count = 0;
   char const** glfw_extensions =
       glfwGetRequiredInstanceExtensions(&glfw_extension_count);
-  assert_(glfw_extensions != nullptr,
-          "Failed to get the required vulkan instance extensions for GLFW. On "
-          "macos, try adding the location of your vulkan dylib to "
-          "DYLD_LIBRARY_PATH at runtime or RPATH at build time.");
+  assert_(glfw_extensions != nullptr);
 
   for (u32 i = 0; i < glfw_extension_count; ++i) {
     extensions.push(glfw_extensions[i]);
@@ -86,11 +83,6 @@ void Context::create_instance(this Context& self) noexcept {
   };
   VkResult result = vkCreateInstance(&info, &self.vk_loader_alloc_callbacks_,
                                      &self.instance_);
-
-  if (result == VK_ERROR_LAYER_NOT_PRESENT) {
-    panic("A vulkan validation layer was not found. If you installed vulkan in "
-          "a non-standard location, you may need to set VK_LAYER_PATH.");
-  }
 
   assert_eq(result, VK_SUCCESS);
 

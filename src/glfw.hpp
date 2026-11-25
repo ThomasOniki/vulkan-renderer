@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yacsl/debug/panic.hpp"
 #include "yacsl/threads/atomic.hpp"
 #include "yacsl/type_aliases.hpp"
 
@@ -17,6 +18,9 @@ inline void glfw_retain() {
     yacsl::debug::assert_(glfwInit() == GLFW_TRUE,
                           "glfwInit returned GLFW_FALSE!");
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwSetErrorCallback([](int code, char const* desc) {
+      yacsl::debug::panic("[GLFW] {}: {}", code, desc);
+    });
   }
 }
 inline void glfw_release() {
