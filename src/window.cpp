@@ -41,7 +41,7 @@ VkSurfaceKHR Window::create_surface(this Window& self,
                                     Context&     context) noexcept {
   VkSurfaceKHR surface = VK_NULL_HANDLE;
   assert_eq(glfwCreateWindowSurface(context.instance(), self.handle_,
-                                    &context.vk_loader_allocation_callbacks(),
+                                    &context.vk_cpu_alloc_callbacks(),
                                     &surface),
             VK_SUCCESS);
   return surface;

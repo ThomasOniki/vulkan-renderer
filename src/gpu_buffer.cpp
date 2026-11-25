@@ -26,8 +26,7 @@ GPUBuffer GPUBuffer::create(Context& context, usize size,
       .pQueueFamilyIndices   = &queue_family_index,
   };
   assert_eq(vkCreateBuffer(context.device(), &info,
-                           &context.vk_loader_allocation_callbacks(),
-                           &buffer.buffer_),
+                           &context.vk_cpu_alloc_callbacks(), &buffer.buffer_),
             VK_SUCCESS);
 
   VkMemoryAllocateInfo alloc_info = {
@@ -38,7 +37,7 @@ GPUBuffer GPUBuffer::create(Context& context, usize size,
                              : context.device_info().optimal_memory_type_index,
   };
   assert_eq(vkAllocateMemory(context.device(), &alloc_info,
-                             &context.vk_loader_allocation_callbacks(),
+                             &context.vk_cpu_alloc_callbacks(),
                              &buffer.memory_),
             VK_SUCCESS);
 
@@ -48,9 +47,9 @@ GPUBuffer GPUBuffer::create(Context& context, usize size,
 GPUBuffer::~GPUBuffer() noexcept {
   if (context_ != nullptr) {
     vkFreeMemory(context_->device(), memory_,
-                 &context_->vk_loader_allocation_callbacks());
+                 &context_->vk_cpu_alloc_callbacks());
     vkDestroyBuffer(context_->device(), buffer_,
-                    &context_->vk_loader_allocation_callbacks());
+                    &context_->vk_cpu_alloc_callbacks());
   }
 }
 

@@ -6,7 +6,6 @@
 #include "yacsl/debug/assert.hpp"
 #include "yacsl/debug/panic.hpp"
 #include "yacsl/type_aliases.hpp"
-#include <coroutine>
 #include <vulkan/vulkan_core.h>
 
 using yacsl::u32, yacsl::containers::Vector;
@@ -63,8 +62,7 @@ static VkImageView create_image_view(Context& context, VkImage image,
   };
   VkImageView image_view = VK_NULL_HANDLE;
   assert_eq(vkCreateImageView(context.device(), &info,
-                              &context.vk_loader_allocation_callbacks(),
-                              &image_view),
+                              &context.vk_cpu_alloc_callbacks(), &image_view),
             VK_SUCCESS);
   return image_view;
 }
@@ -75,8 +73,7 @@ static VkSemaphore create_semaphore(Context& context) noexcept {
   };
   VkSemaphore semaphore = VK_NULL_HANDLE;
   assert_eq(vkCreateSemaphore(context.device(), &info,
-                              &context.vk_loader_allocation_callbacks(),
-                              &semaphore),
+                              &context.vk_cpu_alloc_callbacks(), &semaphore),
             VK_SUCCESS);
   return semaphore;
 }
@@ -111,8 +108,7 @@ Swapchain::Swapchain(Context& context, Window& window) noexcept
   };
   yacsl::debug::assert_eq(
       vkCreateSwapchainKHR(context.device(), &info,
-                           &context.vk_loader_allocation_callbacks(),
-                           &swapchain_),
+                           &context.vk_cpu_alloc_callbacks(), &swapchain_),
       VK_SUCCESS);
 
   u32 image_count = 0;
@@ -135,18 +131,18 @@ Swapchain::Swapchain(Context& context, Window& window) noexcept
 Swapchain::~Swapchain() noexcept {
   for (VkSemaphore semaphore : image_acquired_semaphores_) {
     vkDestroySemaphore(context_->device(), semaphore,
-                       &context_->vk_loader_allocation_callbacks());
+                       &context_->vk_cpu_alloc_callbacks());
   }
 
   for (yacsl::u32 i = 0; i < images_.len(); ++i) {
     vkDestroyImageView(context_->device(), image_views_[i],
-                       &context_->vk_loader_allocation_callbacks());
+                       &context_->vk_cpu_alloc_callbacks());
   }
 
   vkDestroySwapchainKHR(context_->device(), swapchain_,
-                        &context_->vk_loader_allocation_callbacks());
+                        &context_->vk_cpu_alloc_callbacks());
   vkDestroySurfaceKHR(context_->instance(), surface_,
-                      &context_->vk_loader_allocation_callbacks());
+                      &context_->vk_cpu_alloc_callbacks());
 }
 
 yacsl::containers::Tuple<RenderTarget, VkSemaphore>

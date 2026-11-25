@@ -36,8 +36,8 @@ public:
     return self.device_info_;
   }
   [[nodiscard]] auto const&
-  vk_loader_allocation_callbacks(this Context const& self) noexcept {
-    return self.vk_loader_alloc_callbacks_;
+  vk_cpu_alloc_callbacks(this Context const& self) noexcept {
+    return self.vk_cpu_alloc_callbacks_;
   }
 
 public:
@@ -48,7 +48,7 @@ public:
   };
 
 private:
-  struct VulkanLoaderAllocator {
+  struct VulkanCPUAlloc {
     yacsl::memory::Arena arena;
 
     using Allocations = yacsl::containers::HashMap<void*, yacsl::usize, 16>;
@@ -57,12 +57,12 @@ private:
     struct Callbacks;
   };
 
-  VulkanLoaderAllocator vk_loader_alloc_;
-  VkAllocationCallbacks vk_loader_alloc_callbacks_ = {};
-  VkInstance            instance_                  = VK_NULL_HANDLE;
-  VkPhysicalDevice      physical_device_           = VK_NULL_HANDLE;
-  VkDevice              device_                    = VK_NULL_HANDLE;
-  VkQueue               queue_                     = VK_NULL_HANDLE;
+  VulkanCPUAlloc        vk_cpu_alloc_;
+  VkAllocationCallbacks vk_cpu_alloc_callbacks_ = {};
+  VkInstance            instance_               = VK_NULL_HANDLE;
+  VkPhysicalDevice      physical_device_        = VK_NULL_HANDLE;
+  VkDevice              device_                 = VK_NULL_HANDLE;
+  VkQueue               queue_                  = VK_NULL_HANDLE;
   DeviceInfo            device_info_;
 
 private:
