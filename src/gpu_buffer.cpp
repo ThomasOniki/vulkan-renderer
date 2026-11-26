@@ -88,13 +88,25 @@ void GPUBuffer::flush_mapped(
 GPUBuffer GPUBuffer::create_filled(Context&                      context,
                                    Slice<u8 const, yacsl::usize> data,
                                    VkBufferUsageFlags usage) noexcept {
-  GPUBuffer staging_buffer =
-      create(context, static_cast<usize>(data.len()),
-             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryType::Mappable);
+  // This is commented because I the buffer copying isn't implemented yet and
+  // I'll forget to do it if create_filled() "just works" because it doesn't use
+  // a staging buffer.
+  // bool const both_mappable_and_optimal =
+  //     context.device_info().mappable_memory_type_index ==
+  //     context.device_info().optimal_memory_type_index;
+
+  GPUBuffer staging_buffer = create(
+      context, static_cast<usize>(data.len()),
+      // both_mappable_and_optimal ? usage : VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryType::Mappable);
   staging_buffer.map({0, data.len()});
   staging_buffer.write_to_mapped(data);
   staging_buffer.flush_mapped({0, data.len()});
   staging_buffer.unmap();
+
+  // if (both_mappable_and_optimal) {
+  //   return staging_buffer;
+  // }
 
   GPUBuffer buffer =
       create(context, static_cast<usize>(data.len()),

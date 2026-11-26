@@ -127,13 +127,18 @@ void Context::find_memory_type_indices(this Context& self) noexcept {
   vkGetPhysicalDeviceMemoryProperties(self.physical_device_, &mem_props);
 
   for (u32 i = 0; i < mem_props.memoryTypeCount; ++i) {
-    if ((mem_props.memoryTypes[i].propertyFlags &
-         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) > 0) {
+    bool const host_visible = (mem_props.memoryTypes[i].propertyFlags &
+                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) > 0;
+    bool const device_local = (mem_props.memoryTypes[i].propertyFlags &
+                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) > 0;
+    if (host_visible) {
       self.device_info_.mappable_memory_type_index = i;
     }
-    if ((mem_props.memoryTypes[i].propertyFlags &
-         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) > 0) {
+    if (device_local) {
       self.device_info_.optimal_memory_type_index = i;
+      if (host_visible) {
+        break;
+      }
     }
   }
 
