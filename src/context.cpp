@@ -16,33 +16,35 @@ using yacsl::containers::Vector, yacsl::containers::StackArray;
 using yacsl::debug::assert_eq, yacsl::debug::assert_;
 using yacsl::memory::Alignment;
 
-struct Context::VulkanCPUAlloc::Callbacks {
+struct Context::VulkanCPUAllocCallbacks {
   // NOLINTBEGIN(bugprone-easily-swappable-parameters)
   static VKAPI_ATTR void* VKAPI_CALL
   alloc(void* pself, yacsl::usize size, yacsl::usize alignment,
         VkSystemAllocationScope /*scope*/) noexcept {
-    auto& self = *static_cast<VulkanCPUAlloc*>(pself);
+    auto& self = *static_cast<Context*>(pself);
     void* ptr =
-        self.arena.allocate(size, yacsl::memory::Alignment{alignment}).data();
-    self.vulkan_loader_allocations.insert(ptr, size);
+        self.vk_cpu_arena.allocate(size, yacsl::memory::Alignment{alignment})
+            .data();
+    self.vk_cpu_allocs.insert(ptr, size);
     return ptr;
   }
   static VKAPI_ATTR void* VKAPI_CALL
   realloc(void* pself, void* original, yacsl::usize size,
           yacsl::usize alignment, VkSystemAllocationScope /*scope*/) noexcept {
-    auto& self = *static_cast<VulkanCPUAlloc*>(pself);
+    auto& self = *static_cast<Context*>(pself);
     void* ptr =
-        self.arena.allocate(size, yacsl::memory::Alignment{alignment}).data();
+        self.vk_cpu_arena.allocate(size, yacsl::memory::Alignment{alignment})
+            .data();
     if (original != nullptr) {
-      memcpy(ptr, original, self.vulkan_loader_allocations.get(original));
-      self.vulkan_loader_allocations.remove(original);
+      memcpy(ptr, original, self.vk_cpu_allocs.get(original));
+      self.vk_cpu_allocs.remove(original);
     }
-    self.vulkan_loader_allocations.insert(ptr, size);
+    self.vk_cpu_allocs.insert(ptr, size);
     return ptr;
   }
   static VKAPI_ATTR void VKAPI_CALL free(void* pself, void* ptr) noexcept {
-    auto& self = *static_cast<VulkanCPUAlloc*>(pself);
-    self.vulkan_loader_allocations.remove(ptr);
+    auto& self = *static_cast<Context*>(pself);
+    self.vk_cpu_allocs.remove(ptr);
   }
   static VKAPI_ATTR void VKAPI_CALL internal_alloc(
       void* /*pself*/, usize /*size*/, VkInternalAllocationType /*type*/,
@@ -166,14 +168,16 @@ void Context::create_device(this Context& self) noexcept {
     }
   }
 
-  float                                  priority     = 1;
-  StackArray<VkDeviceQueueCreateInfo, 1> queue_infoes = {{{
-      .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-      .queueFamilyIndex = self.device_info_.queue_family_index,
-      .queueCount       = 1,
-      .pQueuePriorities = &priority,
-  }}};
-  VkDeviceCreateInfo                     info         = {
+  float              priority     = 1;
+  auto               queue_infoes = StackArray<VkDeviceQueueCreateInfo, 1>({
+      {
+          .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+          .queueFamilyIndex = self.device_info_.queue_family_index,
+          .queueCount       = 1,
+          .pQueuePriorities = &priority,
+      },
+  });
+  VkDeviceCreateInfo info         = {
       .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
       .queueCreateInfoCount    = queue_infoes.len(),
       .pQueueCreateInfos       = queue_infoes.data(),
@@ -187,12 +191,12 @@ void Context::create_device(this Context& self) noexcept {
 
 Context::Context() noexcept
     : vk_cpu_alloc_callbacks_{
-          .pUserData             = &vk_cpu_alloc_,
-          .pfnAllocation         = VulkanCPUAlloc::Callbacks::alloc,
-          .pfnReallocation       = VulkanCPUAlloc::Callbacks::realloc,
-          .pfnFree               = VulkanCPUAlloc::Callbacks::free,
-          .pfnInternalAllocation = VulkanCPUAlloc::Callbacks::internal_alloc,
-          .pfnInternalFree       = VulkanCPUAlloc::Callbacks::internal_free,
+          .pUserData             = this,
+          .pfnAllocation         = VulkanCPUAllocCallbacks::alloc,
+          .pfnReallocation       = VulkanCPUAllocCallbacks::realloc,
+          .pfnFree               = VulkanCPUAllocCallbacks::free,
+          .pfnInternalAllocation = VulkanCPUAllocCallbacks::internal_alloc,
+          .pfnInternalFree       = VulkanCPUAllocCallbacks::internal_free,
       } {
   create_instance();
   pick_physical_device();

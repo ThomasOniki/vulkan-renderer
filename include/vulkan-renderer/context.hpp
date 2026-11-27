@@ -48,16 +48,12 @@ public:
   };
 
 private:
-  struct VulkanCPUAlloc {
-    yacsl::memory::Arena arena;
+  using Allocations = yacsl::containers::HashMap<void*, yacsl::usize, 16>;
 
-    using Allocations = yacsl::containers::HashMap<void*, yacsl::usize, 16>;
-    Allocations vulkan_loader_allocations = Allocations(16);
+  struct VulkanCPUAllocCallbacks;
 
-    struct Callbacks;
-  };
-
-  VulkanCPUAlloc        vk_cpu_alloc_;
+  yacsl::memory::Arena  vk_cpu_arena;
+  Allocations           vk_cpu_allocs           = Allocations(16);
   VkAllocationCallbacks vk_cpu_alloc_callbacks_ = {};
   VkInstance            instance_               = VK_NULL_HANDLE;
   VkPhysicalDevice      physical_device_        = VK_NULL_HANDLE;
