@@ -46,6 +46,32 @@ static VkPresentModeKHR pick_present_mode(VkPhysicalDevice physical_device,
   return VK_PRESENT_MODE_FIFO_KHR;
 }
 
+static VkRenderPass create_render_pass(Context& context,
+                                       VkFormat format) noexcept {
+  VkSubpassDescription    subpass    = {};
+  VkAttachmentDescription attachment = {
+      .format         = format,
+      .samples        = VK_SAMPLE_COUNT_1_BIT,
+      .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
+      .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
+      .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+      .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+      .finalLayout    = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+  };
+  VkRenderPassCreateInfo info = {
+      .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+      .attachmentCount = 1,
+      .pAttachments    = &attachment,
+      .subpassCount    = 1,
+      .pSubpasses      = &subpass,
+  };
+  VkRenderPass render_pass = VK_NULL_HANDLE;
+  assert_eq(vkCreateRenderPass(context.device(), &info,
+                               &context.vk_cpu_alloc_callbacks(), &render_pass),
+            VK_SUCCESS);
+  return render_pass;
+}
+
 static VkImageView create_image_view(Context& context, VkImage image,
                                      VkFormat format) noexcept {
   VkImageViewCreateInfo info = {
@@ -111,6 +137,8 @@ Swapchain::Swapchain(Context& context, Window& window) noexcept
                            &context.vk_cpu_alloc_callbacks(), &swapchain_),
       VK_SUCCESS);
 
+  render_pass_ = create_render_pass(context, format);
+
   u32 image_count = 0;
   assert_eq(vkGetSwapchainImagesKHR(context.device(), swapchain_, &image_count,
                                     nullptr),
@@ -138,6 +166,9 @@ Swapchain::~Swapchain() noexcept {
     vkDestroyImageView(context_->device(), image_views_[i],
                        &context_->vk_cpu_alloc_callbacks());
   }
+
+  vkDestroyRenderPass(context_->device(), render_pass_,
+                      &context_->vk_cpu_alloc_callbacks());
 
   vkDestroySwapchainKHR(context_->device(), swapchain_,
                         &context_->vk_cpu_alloc_callbacks());

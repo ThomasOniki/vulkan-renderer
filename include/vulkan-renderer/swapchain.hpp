@@ -34,6 +34,9 @@ public:
   [[nodiscard]] auto swapchain(this Swapchain const& self) noexcept {
     return self.swapchain_;
   }
+  [[nodiscard]] auto render_pass(this Swapchain const& self) noexcept {
+    return self.render_pass_;
+  }
 
   static constexpr yacsl::usize FRAMES_IN_FLIGHT = 2;
 
@@ -41,7 +44,8 @@ private:
   Context*       context_;
   VkSurfaceKHR   surface_;
   VkFormat       format_;
-  VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
+  VkSwapchainKHR swapchain_   = VK_NULL_HANDLE;
+  VkRenderPass   render_pass_ = VK_NULL_HANDLE;
 
   yacsl::containers::Vector<VkImage, 4>     images_;
   yacsl::containers::Vector<VkImageView, 4> image_views_;
