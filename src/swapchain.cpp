@@ -5,6 +5,7 @@
 #include "yacsl/containers/vector.hpp"
 #include "yacsl/debug/assert.hpp"
 #include "yacsl/debug/panic.hpp"
+#include "yacsl/math/matrix.hpp"
 #include "yacsl/type_aliases.hpp"
 #include <vulkan/vulkan_core.h>
 
@@ -48,7 +49,18 @@ static VkPresentModeKHR pick_present_mode(VkPhysicalDevice physical_device,
 
 static VkRenderPass create_render_pass(Context& context,
                                        VkFormat format) noexcept {
-  VkSubpassDescription    subpass    = {};
+
+  VkAttachmentReference attachment_ref = {
+      .attachment = 0,
+      .layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+  };
+
+  VkSubpassDescription subpass = {
+      .pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS,
+      .colorAttachmentCount = 1,
+      .pColorAttachments    = &attachment_ref,
+  };
+
   VkAttachmentDescription attachment = {
       .format         = format,
       .samples        = VK_SAMPLE_COUNT_1_BIT,
@@ -56,7 +68,7 @@ static VkRenderPass create_render_pass(Context& context,
       .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-      .finalLayout    = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+      .finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
   };
   VkRenderPassCreateInfo info = {
       .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
@@ -93,6 +105,27 @@ static VkImageView create_image_view(Context& context, VkImage image,
   return image_view;
 }
 
+static VkFramebuffer create_framebuffer(Context&               context,
+                                        VkRenderPass           render_pass,
+                                        VkImageView            image_view,
+                                        yacsl::math::Vec2<u32> size) noexcept {
+  VkFramebufferCreateInfo info = {
+      .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+      .renderPass      = render_pass,
+      .attachmentCount = 1,
+      .pAttachments    = &image_view,
+      .width           = size[0],
+      .height          = size[1],
+      .layers          = 1,
+  };
+  VkFramebuffer framebuffer = VK_NULL_HANDLE;
+  assert_eq(vkCreateFramebuffer(context.device(), &info,
+                                &context.vk_cpu_alloc_callbacks(),
+                                &framebuffer),
+            VK_SUCCESS);
+  return framebuffer;
+}
+
 static VkSemaphore create_semaphore(Context& context) noexcept {
   VkSemaphoreCreateInfo info = {
       .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
@@ -106,7 +139,8 @@ static VkSemaphore create_semaphore(Context& context) noexcept {
 
 Swapchain::Swapchain(Context& context, Window& window) noexcept
     : context_(&context), surface_(window.create_surface(context)),
-      format_(pick_format(context.physical_device(), surface_)) {
+      format_(pick_format(context.physical_device(), surface_)),
+      fb_size_(window.framebuffer_size()) {
   VkSurfaceCapabilitiesKHR capabilities;
   assert_eq(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context.physical_device(),
                                                       surface_, &capabilities),
@@ -148,7 +182,10 @@ Swapchain::Swapchain(Context& context, Window& window) noexcept
                                     images_.data()),
             VK_SUCCESS);
   for (VkImage const image : images_) {
-    image_views_.push(create_image_view(context, image, format_));
+    VkImageView image_view = create_image_view(context, image, format_);
+    image_views_.push(image_view);
+    framebuffers_.push(create_framebuffer(context, render_pass_, image_view,
+                                          window.framebuffer_size()));
   }
 
   for (VkSemaphore& semaphore : image_acquired_semaphores_) {
@@ -157,12 +194,15 @@ Swapchain::Swapchain(Context& context, Window& window) noexcept
 }
 
 Swapchain::~Swapchain() noexcept {
+  vkDeviceWaitIdle(context_->device());
   for (VkSemaphore semaphore : image_acquired_semaphores_) {
     vkDestroySemaphore(context_->device(), semaphore,
                        &context_->vk_cpu_alloc_callbacks());
   }
 
   for (yacsl::u32 i = 0; i < images_.len(); ++i) {
+    vkDestroyFramebuffer(context_->device(), framebuffers_[i],
+                         &context_->vk_cpu_alloc_callbacks());
     vkDestroyImageView(context_->device(), image_views_[i],
                        &context_->vk_cpu_alloc_callbacks());
   }
@@ -176,7 +216,7 @@ Swapchain::~Swapchain() noexcept {
                       &context_->vk_cpu_alloc_callbacks());
 }
 
-yacsl::containers::Tuple<RenderTarget, VkSemaphore>
+yacsl::containers::Tuple<RenderTarget, VkSemaphore, u32>
 Swapchain::next_image(this Swapchain& self) noexcept {
   u32         image_index = 0;
   VkSemaphore semaphore   = self.image_acquired_semaphores_[self.frame_index_];
@@ -185,10 +225,15 @@ Swapchain::next_image(this Swapchain& self) noexcept {
                         VK_NULL_HANDLE, &image_index);
   return {
       RenderTarget{
-          .image      = self.images_[image_index],
-          .image_view = self.image_views_[image_index],
+          .image       = self.images_[image_index],
+          .image_view  = self.image_views_[image_index],
+          .framebuffer = self.framebuffers_[image_index],
+          .render_pass = self.render_pass_,
+          .swapchain   = self.swapchain_,
+          .size        = self.fb_size_,
       },
       semaphore,
+      image_index,
   };
 }
 

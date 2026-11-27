@@ -6,6 +6,7 @@
 #include "vulkan-renderer/window.hpp"
 #include "yacsl/containers/stack_array.hpp"
 #include "yacsl/containers/tuple.hpp"
+#include "yacsl/math/matrix.hpp"
 #include "yacsl/type_aliases.hpp"
 #include <vulkan/vulkan_core.h>
 
@@ -22,7 +23,7 @@ public:
   Swapchain& operator=(this Swapchain& self, Swapchain const&) = delete;
   Swapchain& operator=(this Swapchain& self, Swapchain&&)      = delete;
 
-  [[nodiscard]] yacsl::containers::Tuple<RenderTarget, VkSemaphore>
+  [[nodiscard]] yacsl::containers::Tuple<RenderTarget, VkSemaphore, yacsl::u32>
   next_image(this Swapchain& self) noexcept VULKAN_RENDERER_API;
 
   [[nodiscard]] auto surface(this Swapchain const& self) noexcept {
@@ -47,8 +48,11 @@ private:
   VkSwapchainKHR swapchain_   = VK_NULL_HANDLE;
   VkRenderPass   render_pass_ = VK_NULL_HANDLE;
 
-  yacsl::containers::Vector<VkImage, 4>     images_;
-  yacsl::containers::Vector<VkImageView, 4> image_views_;
+  yacsl::math::Vec2<yacsl::u32> fb_size_;
+
+  yacsl::containers::Vector<VkImage, 4>       images_;
+  yacsl::containers::Vector<VkImageView, 4>   image_views_;
+  yacsl::containers::Vector<VkFramebuffer, 4> framebuffers_;
 
   yacsl::u32 frame_index_ = 0;
   yacsl::containers::StackArray<VkSemaphore, FRAMES_IN_FLIGHT>
