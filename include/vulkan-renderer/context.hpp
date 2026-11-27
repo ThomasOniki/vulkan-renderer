@@ -40,6 +40,10 @@ public:
     return self.vk_cpu_alloc_callbacks_;
   }
 
+  [[nodiscard]] auto cmd_pool(this Context const& self) noexcept {
+    return self.cmd_pool_;
+  }
+
 public:
   struct DeviceInfo {
     yacsl::u32 queue_family_index         = 0;
@@ -61,12 +65,15 @@ private:
   VkQueue               queue_                  = VK_NULL_HANDLE;
   DeviceInfo            device_info_;
 
+  VkCommandPool cmd_pool_ = VK_NULL_HANDLE;
+
 private:
   void create_instance(this Context& self) noexcept;
   void pick_physical_device(this Context& self) noexcept;
   void find_queue_family_index(this Context& self) noexcept;
   void find_memory_type_indices(this Context& self) noexcept;
   void create_device(this Context& self) noexcept;
+  void create_cmd_pool(this Context& self) noexcept;
 };
 
 } // namespace vulkan_renderer

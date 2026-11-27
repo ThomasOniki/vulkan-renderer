@@ -189,6 +189,16 @@ void Context::create_device(this Context& self) noexcept {
             VK_SUCCESS);
 }
 
+void Context::create_cmd_pool(this Context& self) noexcept {
+  VkCommandPoolCreateInfo info = {
+      .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+      .queueFamilyIndex = self.device_info_.queue_family_index,
+  };
+  assert_eq(vkCreateCommandPool(self.device_, &info,
+                                &self.vk_cpu_alloc_callbacks_, &self.cmd_pool_),
+            VK_SUCCESS);
+}
+
 Context::Context() noexcept
     : vk_cpu_alloc_callbacks_{
           .pUserData             = this,
@@ -204,9 +214,11 @@ Context::Context() noexcept
   find_memory_type_indices();
   create_device();
   vkGetDeviceQueue(device_, device_info_.queue_family_index, 0, &queue_);
+  create_cmd_pool();
 }
 
 Context::~Context() noexcept {
+  vkDestroyCommandPool(device_, cmd_pool_, &vk_cpu_alloc_callbacks_);
   vkDestroyDevice(device_, &vk_cpu_alloc_callbacks_);
   vkDestroyInstance(instance_, &vk_cpu_alloc_callbacks_);
 }
